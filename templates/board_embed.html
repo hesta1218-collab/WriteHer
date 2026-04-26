@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>侦探板</title>
+<link rel="stylesheet" href="/static/style.css">
+<style>
+body, html { margin: 0; height: 100%; overflow: hidden; }
+
+.embed-container {
+    position: relative;
+    width: 100%; height: 100%;
+    background-image: radial-gradient(var(--border-muted) 1px, transparent 1px);
+    background-size: 30px 30px;
+}
+
+.embed-toolbar {
+    position: absolute; top: 12px; right: 12px;
+    z-index: 10;
+}
+
+.open-full-btn {
+    background: var(--panel-bg);
+    border: 1px solid var(--accent-gold-dim);
+    color: var(--accent-gold);
+    padding: 6px 12px;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.open-full-btn:hover { border-color: var(--accent-gold); }
+
+svg.edges-layer {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    overflow: visible;
+}
+svg.edges-layer line {
+    stroke: var(--accent-gold);
+    stroke-width: 1;
+    opacity: 0.5;
+}
+
+.board-node {
+    position: absolute;
+    padding: 8px 10px;
+    border: 1px solid var(--accent-gold);
+    background: var(--bg-deep);
+    font-size: 10px; line-height: 1.4;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    max-width: 120px;
+    user-select: none;
+    pointer-events: auto;
+    cursor: pointer;
+
+    /* 文字省略 */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.board-node:hover {
+    overflow: visible;
+    white-space: normal;
+    -webkit-line-clamp: unset;
+    z-index: 100;
+    max-width: 250px;
+}
+
+.edge-label-text {
+    font-size: 11px; fill: var(--accent-gold); opacity: 0.8;
+}
+</style>
+</head>
+<body>
+
+<div class="embed-container" id="canvas">
+    <svg class="edges-layer" id="edgesLayer"></svg>
+    <div class="embed-toolbar">
+        <button class="open-full-btn" onclick="openFullBoard()">
+            ↗ 打开完整侦探板
+        </button>
+    </div>
+</div>
+
+<script>
+const PROJECT = {{ project | tojson }};
+const nodes = {{ nodes | safe }};
+const edges = {{ edges | safe }};
+
+function openFullBoard() {
+    window.open('/board?project=' + encodeURIComponent(PROJECT), '_blank');
+}
+
+// 计算画布缩放比例
+function calculateScale() {
+    if (nodes.length === 0) return 1;
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    nodes.forEach(n => {
+        minX = Math.min(minX, n.x);
+        minY = Math.min(minY, n.y);
+        maxX = Math.max(maxX, n.x + 200);
+        maxY = Math.max(maxY, n.y + 100);
+    });
+
+    const contentWidth = maxX - minX;
+    const contentHeight = maxY - minY;
+    const containerWidth = window.innerWidth;
+    const containerHeight = window.innerHeight;
+
+    const scaleX = containerWidth / contentWidth;
+    const scaleY = containerHeight / contentHeight;
+    const scale = Math.min(scaleX, scaleY, 1) * 0.85; // 留15%边距
+
+    return { scale, offsetX: -minX * scale + containerWidth * 0.075, offsetY: -minY * scale + containerHeight * 0.075 };
+}
+
+const { scale, offsetX, offsetY } = calculateScale();
+
+// 渲染节点（只读，缩放）
+nodes.forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'board-node';
+    el.style.left = (n.x * scale + offsetX) + 'px';
+    el.style.top = (n.y * scale + offsetY) + 'px';
+    el.style.transform = `scale(${scale})`;
+    el.style.transformOrigin = 'top left';
+    el.textContent = n.label;
+    el.title = n.label; // 悬停显示完整内容
+    document.getElementById('canvas').appendChild(el);
+});
+
+// 渲染边
+const edgesLayer = document.getElementById('edgesLayer');
+edges.forEach(edge => {
+    const fromNode = nodes.find(n => String(n.id) === String(edge.from));
+    const toNode = nodes.find(n => String(n.id) === String(edge.to));
+    if (!fromNode || !toNode) return;
+
+    const x1 = fromNode.x * scale + offsetX + 60 * scale;
+    const y1 = fromNode.y * scale + offsetY + 20 * scale;
+    const x2 = toNode.x * scale + offsetX + 60 * scale;
+    const y2 = toNode.y * scale + offsetY + 20 * scale;
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+    edgesLayer.appendChild(line);
+
+    if (edge.label) {
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', (x1 + x2) / 2);
+        text.setAttribute('y', (y1 + y2) / 2 - 6);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('class', 'edge-label-text');
+        text.textContent = edge.label;
+        edgesLayer.appendChild(text);
+    }
+});
+</script>
+
+</body>
+</html>

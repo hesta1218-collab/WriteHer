@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>WriteHer · 述她</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<nav class="top-nav">
+    <span class="brand">WRITEHR · 述她</span>
+    <a href="/library" class="{{ 'active' if active_page == 'library' }}">资料库 / ARCHIVE</a>
+    <a href="/plaza"   class="{{ 'active' if active_page == 'plaza' }}">广场 / PLAZA</a>
+    <a href="/board"   class="{{ 'active' if active_page == 'board' }}">侦探板 / INFERENCE</a>
+    <a href="/editor"  class="{{ 'active' if active_page == 'editor' }}">编辑器 / NARRATIVE</a>
+</nav>
+{% block content %}{% endblock %}
+</body>
+</html>

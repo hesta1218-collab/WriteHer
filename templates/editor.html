@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% set active_page = 'editor' %}
+{% block content %}
+<style>
+.editor-layout {
+    display: grid;
+    grid-template-columns: 30% 70%;
+    grid-template-rows: 60% 40%;
+    height: calc(100vh - 40px);
+}
+
+.panel {
+    border: 0.5px solid var(--border-muted);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+.panel-title {
+    padding: 12px 20px;
+    font-size: 12px; letter-spacing: 2px;
+    color: var(--accent-gold); opacity: 0.8;
+    border-bottom: 1px solid var(--border-muted);
+    flex-shrink: 0;
+}
+.panel-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+
+/* 资料库面板 */
+#panelLibrary { grid-area: 1 / 1 / 2 / 2; }
+.source-item { margin-bottom: 8px; }
+.source-title {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-muted);
+    font-size: 13px; opacity: 0.7;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.source-title:hover { opacity: 1; color: var(--accent-gold); }
+.source-content {
+    padding: 12px 0;
+    font-size: 13px;
+    line-height: 1.8;
+    opacity: 0.8;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* 细节卡片面板 */
+#panelCards { grid-area: 2 / 1 / 3 / 2; }
+.editor-card {
+    background: var(--panel-bg);
+    border-left: 2px solid var(--accent-gold);
+    padding: 10px 12px; margin-bottom: 10px;
+    font-size: 12px; line-height: 1.7;
+}
+.editor-card-tags { color: var(--accent-gold); font-size: 11px; margin-bottom: 4px; }
+
+/* 写作区 */
+#panelWriting { grid-area: 1 / 2 / 2 / 3; }
+.writing-area {
+    width: 100%; height: 100%;
+    background: transparent; border: none;
+    color: var(--text-warm);
+    font-family: 'Noto Serif SC', serif;
+    font-size: 18px; line-height: 2.2;
+    resize: none; outline: none;
+    padding: 24px 40px;
+}
+
+/* 侦探板缩略 */
+#panelBoard { grid-area: 2 / 2 / 3 / 3; }
+#boardThumb {
+    width: 100%; height: 100%;
+    border: none; background: transparent;
+}
+
+/* 自动保存提示 */
+.save-indicator {
+    position: fixed; bottom: 16px; right: 16px;
+    font-size: 11px; color: var(--accent-gold-dim);
+    opacity: 0; transition: opacity 0.5s;
+    letter-spacing: 1px;
+}
+.save-indicator.show { opacity: 1; }
+</style>
+
+<div class="editor-layout">
+    <div class="panel" id="panelLibrary">
+        <div class="panel-title">资料库 / SOURCE</div>
+        <div class="panel-body" id="libraryBody">
+            {% for s in sources %}
+            <div class="source-item" data-id="{{ s.id }}">
+                <div class="source-title" onclick="toggleSource({{ s.id }})">{{ s.title }}</div>
+                <div class="source-content" id="source-{{ s.id }}" style="display:none;"></div>
+            </div>
+            {% endfor %}
+            {% if not sources %}
+            <p style="opacity:0.3; font-size:12px;">暂无资料</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="panel" id="panelCards">
+        <div class="panel-title">细节卡片 / FRAGMENTS</div>
+        <div class="panel-body">
+            {% for c in cards %}
+            <div class="editor-card">
+                <div class="editor-card-tags">
+                    {% for tag in (c.tags | from_json) %}{{ tag }} {% endfor %}
+                </div>
+                {{ c.content }}
+            </div>
+            {% endfor %}
+            {% if not cards %}
+            <p style="opacity:0.3; font-size:12px;">暂无卡片</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="panel" id="panelWriting">
+        <div class="panel-title">写作 / NARRATIVE</div>
+        <textarea class="writing-area" id="writingArea"
+                  placeholder="在此处落笔...">{{ draft_content }}</textarea>
+    </div>
+
+    <div class="panel" id="panelBoard">
+        <div class="panel-title">侦探板 / INFERENCE</div>
+        <iframe id="boardThumb" src="/board?project={{ project | urlencode }}&embed=true"></iframe>
+    </div>
+</div>
+
+<div class="save-indicator" id="saveIndicator">已保存</div>
+
+<script>
+const PROJECT = {{ project | tojson }};
+</script>
+<script src="/static/js/editor.js"></script>
+{% endblock %}

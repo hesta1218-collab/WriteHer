@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% set active_page = 'library' %}
+{% block content %}
+<style>
+.lib-layout { display: flex; height: calc(100vh - 40px); overflow: hidden; }
+
+.folder-sidebar {
+    width: 220px; flex-shrink: 0;
+    border-right: 1px solid var(--border-muted);
+    padding: 20px 10px;
+    background: #0d0d0d;
+    overflow-y: auto;
+}
+.sidebar-label { font-size: 11px; letter-spacing: 2px; color: var(--accent-gold); opacity: 0.7; padding: 0 10px; margin-bottom: 20px; }
+.folder-item {
+    padding: 9px 10px; font-size: 13px; cursor: pointer;
+    border-radius: 2px; margin-bottom: 2px;
+    display: flex; align-items: center; gap: 8px;
+    opacity: 0.6; transition: opacity 0.2s;
+}
+.folder-item:hover { opacity: 1; background: var(--panel-bg); }
+.folder-item.active { opacity: 1; color: var(--accent-gold); border-left: 2px solid var(--accent-gold); }
+
+.main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+.list-header {
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border-muted);
+    display: flex; align-items: center; gap: 16px;
+}
+.list-header form.search-form { display: flex; gap: 8px; flex: 1; }
+.list-header input[type=search] { width: 260px; border-radius: 20px; }
+
+.upload-btn {
+    border: 1px dashed var(--accent-gold-dim);
+    color: var(--accent-gold);
+    padding: 7px 20px;
+    font-size: 12px; cursor: pointer;
+    background: transparent;
+    font-family: 'Noto Serif SC', serif;
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+.upload-btn:hover { border-color: var(--accent-gold); }
+
+.source-table { padding: 8px 32px; overflow-y: auto; flex: 1; }
+.source-row {
+    display: grid;
+    grid-template-columns: 32px 1fr 200px 110px 80px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border-muted);
+    align-items: center;
+    gap: 12px;
+    transition: background 0.2s;
+}
+.source-row:hover { background: rgba(139,115,85,0.04); }
+.cred-symbol { font-size: 18px; text-align: center; cursor: pointer; }
+.doc-title { font-size: 14px; }
+.doc-title a:hover { color: var(--accent-gold); }
+.doc-date { font-size: 12px; color: var(--accent-gold-dim); }
+.del-btn { font-size: 11px; color: var(--accent-gold-dim); cursor: pointer; opacity: 0; transition: opacity 0.2s; background: none; border: none; font-family: inherit; }
+.source-row:hover .del-btn { opacity: 1; }
+
+/* 导入弹窗 */
+.modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 100;
+    align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-muted);
+    padding: 32px; width: 400px;
+}
+.modal h3 { margin: 0 0 20px; font-size: 14px; color: var(--accent-gold); letter-spacing: 1px; font-weight: 500; }
+.modal label { font-size: 12px; opacity: 0.6; display: block; margin-bottom: 6px; }
+.modal input[type=text] { width: 100%; margin-bottom: 16px; }
+.modal input[type=file] { color: var(--text-warm); font-size: 12px; margin-bottom: 20px; display: block; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* 可信度下拉 */
+.cred-dropdown {
+    position: absolute; background: var(--panel-bg);
+    border: 1px solid var(--border-muted);
+    z-index: 50; min-width: 180px;
+}
+.cred-option { padding: 10px 14px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.cred-option:hover { background: rgba(139,115,85,0.1); }
+
+/* 分享按钮 */
+.share-btn {
+    background: transparent;
+    border: 1px solid var(--border-muted);
+    color: var(--text-warm);
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+.share-btn:hover {
+    border-color: var(--accent-gold);
+}
+
+/* 分享设置弹窗 */
+.share-modal {
+    padding: 20px;
+}
+.share-modal h3 {
+    margin-bottom: 16px;
+    font-size: 16px;
+}
+.share-option {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.share-option input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+.share-option label {
+    cursor: pointer;
+    font-size: 13px;
+}
+</style>
+
+<div class="lib-layout">
+    <aside class="folder-sidebar">
+        <div class="sidebar-label">ARCHIVE / 案卷夹</div>
+        <div class="folder-item {{ 'active' if not active_folder }}" onclick="location.href='/library'">
+            <span>📂</span> 全部资料
+        </div>
+        {% for f in folders %}
+        <div class="folder-item {{ 'active' if active_folder == f }}" onclick="location.href='/library?folder={{ f|urlencode }}'">
+            <span>📂</span> {{ f }}
+        </div>
+        {% endfor %}
+    </aside>
+
+    <main class="main-area">
+        <div class="list-header">
+            <form class="search-form" method="get" action="/library">
+                {% if active_folder %}<input type="hidden" name="folder" value="{{ active_folder }}">{% endif %}
+                <input type="search" name="q" value="{{ search }}" placeholder="检索资料标题...">
+                <button class="btn" type="submit">检索</button>
+            </form>
+            <button class="upload-btn" onclick="document.getElementById('importModal').classList.add('open')">
+                + 掷入新的碎片资料
+            </button>
+        </div>
+
+        <div class="source-table">
+            {% if not sources %}
+            <p style="opacity:0.3; padding: 40px 0; font-size:13px;">暂无资料，点击右上角导入 .md 文件</p>
+            {% endif %}
+            {% for s in sources %}
+            <div class="source-row" style="position:relative;">
+                <div class="cred-symbol" data-id="{{ s.id }}" onclick="toggleCredDropdown(event, {{ s.id }})">
+                    {{ s.credibility or '◻' }}
+                </div>
+                <div class="doc-title">
+                    <a href="/reader/{{ s.id }}">{{ s.title }}</a>
+                </div>
+                <div>
+                    {% set cred = s.credibility %}
+                    {% if cred == '●' %}
+                    <span class="tag-pill full">● {{ s.credibility_label or '一手资料' }}</span>
+                    {% elif cred == '◐' %}
+                    <span class="tag-pill half">◐ {{ s.credibility_label or '二级资料' }}</span>
+                    {% elif cred == '○' %}
+                    <span class="tag-pill none">○ {{ s.credibility_label or '网络来源' }}</span>
+                    {% else %}
+                    <span class="tag-pill draft">◻ {{ s.credibility_label or '个人假设' }}</span>
+                    {% endif %}
+                </div>
+                <div class="doc-date">{{ (s.created_at or '')[:10] }}</div>
+                <div style="display:flex; gap:8px;">
+                    <button class="share-btn" onclick="openShareSettings({{ s.id }}, {{ s.is_public or 0 }}, {{ s.allow_download or 0 }})" title="分享设置">
+                        {% if s.is_public %}🌐{% else %}🔒{% endif %}
+                    </button>
+                    <form method="post" action="/library/delete/{{ s.id }}" onsubmit="return confirm('删除此资料？')" style="margin:0;">
+                        <button class="del-btn" type="submit">删除</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+</div>
+
+<!-- 导入弹窗 -->
+<div class="modal-overlay" id="importModal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal">
+        <h3>掷入新的碎片资料</h3>
+        <form method="post" action="/library/import" enctype="multipart/form-data">
+            <label>案卷夹（可选）</label>
+            <input type="text" name="folder" placeholder="例：1986 麦克默多站记录">
+            <label>选择 .md 文件</label>
+            <input type="file" name="file" accept=".md" required>
+            <div class="modal-actions">
+                <button class="btn" type="button" onclick="document.getElementById('importModal').classList.remove('open')">取消</button>
+                <button class="btn" type="submit">导入</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 分享设置弹窗 -->
+<div class="modal-overlay" id="shareModal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal share-modal">
+        <h3>分享设置</h3>
+        <div class="share-option">
+            <input type="checkbox" id="sharePublic">
+            <label for="sharePublic">公开到广场</label>
+        </div>
+        <div class="share-option">
+            <input type="checkbox" id="shareDownload">
+            <label for="shareDownload">允许下载 Markdown 文件</label>
+        </div>
+        <div class="modal-actions">
+            <button class="btn" type="button" onclick="document.getElementById('shareModal').classList.remove('open')">取消</button>
+            <button class="btn" type="button" onclick="saveShareSettings()">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 可信度下拉 -->
+<div class="cred-dropdown" id="credDropdown" style="display:none;">
+    <div class="cred-option" onclick="setCred('●','一手 / 案卷档案')"><span style="color:var(--text-warm)">●</span> 一手 / 案卷档案</div>
+    <div class="cred-option" onclick="setCred('◐','二级 / 学术考证')"><span style="color:var(--accent-gold)">◐</span> 二级 / 学术考证</div>
+    <div class="cred-option" onclick="setCred('○','网络 / 民间来源')"><span style="color:var(--accent-gold-dim)">○</span> 网络 / 民间来源</div>
+    <div class="cred-option" onclick="setCred('◻','个人 / 主观假设')"><span style="color:var(--accent-gold-dim)">◻</span> 个人 / 主观假设</div>
+</div>
+
+<script src="/static/js/library.js"></script>
+{% endblock %}

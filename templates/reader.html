@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% set active_page = 'library' %}
+{% block content %}
+<style>
+.reader-layout {
+    display: grid;
+    grid-template-columns: 200px 1fr 300px;
+    height: calc(100vh - 40px);
+    overflow: hidden;
+}
+
+/* 左侧资料列表 */
+.sources-panel {
+    border-right: 1px solid var(--border-muted);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+}
+.sources-panel-title {
+    padding: 16px 16px 12px;
+    font-size: 11px; letter-spacing: 2px;
+    color: var(--accent-gold); opacity: 0.7;
+    border-bottom: 1px solid var(--border-muted);
+    flex-shrink: 0;
+}
+.sources-list {
+    flex: 1; overflow-y: auto;
+    padding: 8px 0;
+}
+.source-nav-item {
+    display: block;
+    padding: 8px 16px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-warm);
+    opacity: 0.6;
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    transition: opacity 0.2s;
+    word-break: break-all;
+}
+.source-nav-item:hover { opacity: 1; }
+.source-nav-item.active {
+    opacity: 1;
+    border-left-color: var(--accent-gold);
+    color: var(--accent-gold);
+}
+
+.article-panel {
+    padding: 48px 64px;
+    overflow-y: auto;
+    border-right: 1px solid var(--border-muted);
+}
+.article-title {
+    font-size: 20px; font-weight: 500;
+    margin-bottom: 8px;
+}
+.article-meta {
+    font-size: 12px; color: var(--accent-gold); opacity: 0.7;
+    margin-bottom: 40px; letter-spacing: 1px;
+}
+.article-body {
+    font-size: 17px; line-height: 2.2;
+    max-width: 680px;
+}
+.article-body p { margin: 0 0 1.2em; }
+.annotated {
+    border-bottom: 1px solid var(--accent-gold);
+    background: rgba(139,115,85,0.08);
+    cursor: pointer;
+}
+.inline-tag {
+    color: var(--accent-gold);
+    font-size: 12px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+/* 右侧卡片流 */
+.cards-panel {
+    display: flex; flex-direction: column;
+    overflow: hidden;
+}
+.cards-panel-title {
+    padding: 16px 20px;
+    font-size: 12px; letter-spacing: 2px;
+    color: var(--accent-gold); opacity: 0.8;
+    border-bottom: 1px solid var(--border-muted);
+    flex-shrink: 0;
+}
+.cards-list {
+    flex: 1; overflow-y: auto;
+    padding: 16px;
+}
+.card-item {
+    background: var(--panel-bg);
+    border-left: 2px solid var(--accent-gold);
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.7;
+}
+.card-tags { color: var(--accent-gold); font-size: 11px; margin-bottom: 6px; }
+
+/* 标签输入浮层 */
+.tag-popup {
+    position: fixed;
+    background: #1a1a1a;
+    border: 1px solid var(--accent-gold);
+    padding: 10px 12px;
+    z-index: 200;
+    display: none;
+    gap: 8px;
+    align-items: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+}
+.tag-popup.open { display: flex; }
+.tag-popup input {
+    background: transparent; border: none;
+    color: var(--text-warm); outline: none;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 13px; width: 160px;
+}
+.tag-popup button {
+    background: var(--accent-gold); border: none;
+    color: #0a0a0a; cursor: pointer;
+    font-size: 12px; padding: 3px 8px;
+    font-family: 'Noto Serif SC', serif;
+}
+</style>
+
+<div class="reader-layout">
+    <aside class="sources-panel">
+        <div class="sources-panel-title">SOURCE / 资料</div>
+        <div class="sources-list">
+            {% for s in all_sources %}
+            <a class="source-nav-item{% if s.id == source.id %} active{% endif %}"
+               href="/reader/{{ s.id }}">{{ s.title }}</a>
+            {% endfor %}
+        </div>
+    </aside>
+
+    <div class="article-panel" id="articlePanel">
+        <div class="article-title">{{ source.title }}</div>
+        <div class="article-meta">
+            {{ source.folder or '未分类' }} · {{ (source.created_at or '')[:10] }}
+        </div>
+        <div class="article-body" id="articleBody"></div>
+    </div>
+
+    <aside class="cards-panel">
+        <div class="cards-panel-title">FRAGMENTS / 细节卡片</div>
+        <div class="cards-list" id="cardsList">
+            {% for c in cards %}
+            <div class="card-item">
+                <div class="card-tags">
+                    {% for tag in (c.tags | from_json) %}{{ tag }} {% endfor %}
+                </div>
+                {{ c.content }}
+            </div>
+            {% endfor %}
+        </div>
+    </aside>
+</div>
+
+<!-- 标签输入浮层 -->
+<div class="tag-popup" id="tagPopup">
+    <input type="text" id="tagInput" placeholder="#标签/子标签">
+    <button id="tagConfirm">确定</button>
+</div>
+
+<script>
+const SOURCE_ID = {{ source.id }};
+const RAW_CONTENT = {{ source.content | tojson }};
+const EXISTING_CARDS = {{ cards | map(attribute='content') | list | tojson }};
+const EXISTING_TAGS = {{ cards | map(attribute='tags') | list | tojson }};
+</script>
+<script src="/static/js/reader.js"></script>
+{% endblock %}

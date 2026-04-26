@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% set active_page = 'plaza' %}
+{% block content %}
+<style>
+.plaza-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.plaza-header {
+    margin-bottom: 32px;
+}
+
+.plaza-title {
+    font-size: 24px;
+    margin-bottom: 16px;
+    letter-spacing: 2px;
+}
+
+.plaza-search {
+    display: flex;
+    gap: 8px;
+}
+
+.plaza-search input {
+    flex: 1;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-muted);
+    color: var(--text-warm);
+    padding: 10px 16px;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 14px;
+}
+
+.plaza-search button {
+    background: var(--accent-gold);
+    border: none;
+    color: #0a0a0a;
+    padding: 10px 24px;
+    cursor: pointer;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 14px;
+}
+
+.plaza-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.plaza-item {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-muted);
+    padding: 20px 24px;
+    transition: border-color 0.2s;
+}
+
+.plaza-item:hover {
+    border-color: var(--accent-gold);
+}
+
+.plaza-item-title {
+    font-size: 18px;
+    margin-bottom: 8px;
+}
+
+.plaza-item-meta {
+    font-size: 12px;
+    color: var(--accent-gold);
+    opacity: 0.7;
+    margin-bottom: 12px;
+}
+
+.plaza-item-desc {
+    font-size: 13px;
+    line-height: 1.8;
+    opacity: 0.8;
+    margin-bottom: 16px;
+    max-height: 3.6em;
+    overflow: hidden;
+}
+
+.plaza-item-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.plaza-btn {
+    background: transparent;
+    border: 1px solid var(--accent-gold-dim);
+    color: var(--accent-gold);
+    padding: 6px 16px;
+    cursor: pointer;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.plaza-btn:hover {
+    background: var(--accent-gold);
+    color: #0a0a0a;
+}
+
+.plaza-empty {
+    text-align: center;
+    padding: 60px 20px;
+    opacity: 0.3;
+    font-size: 14px;
+}
+</style>
+
+<div class="plaza-container">
+    <div class="plaza-header">
+        <div class="plaza-title">广场 / PLAZA</div>
+        <form class="plaza-search" method="get">
+            <input type="text" name="q" placeholder="搜索资料..." value="{{ search }}">
+            <button type="submit">搜索</button>
+        </form>
+    </div>
+
+    <div class="plaza-list">
+        {% for s in sources %}
+        <div class="plaza-item">
+            <div class="plaza-item-title">{{ s.title }}</div>
+            <div class="plaza-item-meta">
+                @{{ s.contributor }} · {{ s.card_count }} 张卡片
+            </div>
+            <div class="plaza-item-desc">
+                {{ s.title }} 的相关资料和研究...
+            </div>
+            <div class="plaza-item-actions">
+                <a href="/plaza/view/{{ s.id }}" class="plaza-btn">查看</a>
+                <button class="plaza-btn" onclick="importSource({{ s.id }})">导入</button>
+                {% if s.allow_download %}
+                <a href="/plaza/download/{{ s.id }}" class="plaza-btn">下载</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if not sources %}
+        <div class="plaza-empty">暂无公开资料</div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function importSource(sourceId) {
+    if (!confirm('确定要导入这份资料到你的资料库吗？')) return;
+
+    fetch(`/plaza/import/${sourceId}`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                alert('导入成功！');
+                window.location.href = '/reader/' + data.new_id;
+            }
+        });
+}
+</script>
+{% endblock %}

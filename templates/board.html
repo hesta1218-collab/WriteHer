@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% set active_page = 'board' %}
+{% block content %}
+<style>
+.board-layout {
+    display: flex;
+    height: calc(100vh - 40px);
+    overflow: hidden;
+}
+
+/* 左侧卡片库 */
+.card-library {
+    width: 240px; flex-shrink: 0;
+    border-right: 1px solid var(--border-muted);
+    display: flex; flex-direction: column;
+    background: #0d0d0d;
+}
+.card-library-title {
+    padding: 16px 16px;
+    font-size: 11px; letter-spacing: 2px;
+    color: var(--accent-gold); opacity: 0.7;
+    border-bottom: 1px solid var(--border-muted);
+    flex-shrink: 0;
+}
+.card-library-list { flex: 1; overflow-y: auto; padding: 12px; }
+.lib-card {
+    background: var(--panel-bg);
+    border-left: 2px solid var(--accent-gold-dim);
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 12px; line-height: 1.6;
+    cursor: grab;
+    transition: border-color 0.2s;
+}
+.lib-card:hover { border-color: var(--accent-gold); }
+.lib-card-tags { color: var(--accent-gold-dim); font-size: 11px; margin-bottom: 4px; }
+
+/* 画布 */
+.canvas-area {
+    flex: 1; position: relative; overflow: hidden;
+    background-image: radial-gradient(var(--border-muted) 1px, transparent 1px);
+    background-size: 30px 30px;
+}
+svg.edges-layer {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    overflow: visible;
+}
+svg.edges-layer line {
+    stroke: var(--accent-gold);
+    stroke-width: 1;
+    opacity: 0.5;
+    pointer-events: stroke;
+    cursor: pointer;
+}
+
+.board-node {
+    position: absolute;
+    padding: 10px 14px;
+    border: 1px solid var(--accent-gold);
+    background: var(--bg-deep);
+    font-size: 12px; line-height: 1.6;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    cursor: move;
+    max-width: 200px;
+    user-select: none;
+}
+.board-node.selected { border-color: var(--text-warm); box-shadow: 0 0 0 1px var(--text-warm); }
+.node-del { position: absolute; top: 4px; right: 6px; font-size: 10px; cursor: pointer; opacity: 0; color: var(--accent-gold-dim); }
+.board-node:hover .node-del { opacity: 1; }
+
+/* 工具栏 */
+.board-toolbar {
+    position: absolute; top: 16px; right: 16px;
+    display: flex; gap: 8px; z-index: 10;
+}
+
+/* 连线标注弹窗 */
+.edge-label-popup {
+    position: fixed; display: none;
+    background: #1a1a1a; border: 1px solid var(--accent-gold);
+    padding: 8px 12px; z-index: 200; gap: 8px; align-items: center;
+}
+.edge-label-popup.open { display: flex; }
+.edge-label-popup input {
+    background: transparent; border: none;
+    color: var(--text-warm); outline: none;
+    font-family: 'Noto Serif SC', serif; font-size: 13px; width: 120px;
+}
+.edge-label-popup button {
+    background: var(--accent-gold); border: none;
+    color: #0a0a0a; cursor: pointer; font-size: 12px; padding: 3px 8px;
+    font-family: 'Noto Serif SC', serif;
+}
+
+/* 连线标注文字 */
+.edge-label-text {
+    font-size: 11px; fill: var(--accent-gold); opacity: 0.8;
+}
+</style>
+
+<div class="board-layout">
+    <aside class="card-library">
+        <div class="card-library-title">FRAGMENTS / 卡片库</div>
+        <div class="card-library-list">
+            {% for c in cards %}
+            <div class="lib-card" draggable="true"
+                 data-id="{{ c.id }}"
+                 data-content="{{ c.content | e }}">
+                <div class="lib-card-tags">
+                    {% for tag in (c.tags | from_json) %}{{ tag }} {% endfor %}
+                </div>
+                {{ c.content[:80] }}{% if c.content|length > 80 %}…{% endif %}
+            </div>
+            {% endfor %}
+            {% if not cards %}
+            <p style="opacity:0.3; font-size:12px; padding:8px;">先在资料库标注文本生成卡片</p>
+            {% endif %}
+        </div>
+    </aside>
+
+    <div class="canvas-area" id="canvas">
+        <svg class="edges-layer" id="edgesLayer"></svg>
+        <div class="board-toolbar">
+            <button class="btn" id="clearSelBtn">取消选中</button>
+            <button class="btn" id="saveBtn">保存画布</button>
+        </div>
+    </div>
+</div>
+
+<div class="edge-label-popup" id="edgeLabelPopup">
+    <input type="text" id="edgeLabelInput" placeholder="关系描述（可选）">
+    <button id="edgeLabelConfirm">确定</button>
+</div>
+
+<script>
+const PROJECT = {{ project | tojson }};
+const INIT_NODES = {{ nodes | safe }};
+const INIT_EDGES = {{ edges | safe }};
+</script>
+<script src="/static/js/board.js"></script>
+{% endblock %}
