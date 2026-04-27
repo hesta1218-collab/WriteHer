@@ -41,6 +41,96 @@ def get_current_user():
 
 # ── 认证 ──────────────────────────────────────────────
 
+@app.route('/init-admin', methods=['GET', 'POST'])
+def init_admin():
+    """首次部署时创建管理员账号"""
+    with db._conn() as con:
+        existing = con.execute("SELECT COUNT(*) as cnt FROM users").fetchone()
+        if existing['cnt'] > 0:
+            return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        with db._conn() as con:
+            con.execute(
+                "INSERT INTO users (username, password_hash, is_admin, created_at) VALUES (?, ?, 1, ?)",
+                (username, generate_password_hash(password), now())
+            )
+        return redirect(url_for('login'))
+
+    return '''
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <title>初始化管理员 - WriteHer</title>
+        <link rel="stylesheet" href="/static/style.css">
+        <style>
+        .init-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 40px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-muted);
+        }
+        .init-title {
+            font-size: 20px;
+            margin-bottom: 16px;
+            text-align: center;
+            letter-spacing: 2px;
+            color: var(--accent-gold);
+        }
+        .init-desc {
+            font-size: 13px;
+            opacity: 0.7;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .init-form label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 8px;
+            color: var(--accent-gold);
+        }
+        .init-form input {
+            width: 100%;
+            background: var(--bg-deep);
+            border: 1px solid var(--border-muted);
+            color: var(--text-warm);
+            padding: 12px;
+            font-family: 'Noto Serif SC', serif;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        .init-form button {
+            width: 100%;
+            background: var(--accent-gold);
+            border: none;
+            color: #0a0a0a;
+            padding: 12px;
+            cursor: pointer;
+            font-family: 'Noto Serif SC', serif;
+            font-size: 14px;
+        }
+        </style>
+    </head>
+    <body>
+        <div class="init-container">
+            <div class="init-title">首次初始化</div>
+            <div class="init-desc">创建第一个管理员账号</div>
+            <form class="init-form" method="post">
+                <label>用户名</label>
+                <input type="text" name="username" required autofocus>
+                <label>密码</label>
+                <input type="password" name="password" required>
+                <button type="submit">创建管理员</button>
+            </form>
+        </div>
+    </body>
+    </html>
+    '''
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
