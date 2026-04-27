@@ -86,6 +86,16 @@ def init_db():
                 con.execute(f"ALTER TABLE cards ADD COLUMN {col} {definition}")
             except sqlite3.OperationalError:
                 pass
+        for col, definition in [("user_id", "INTEGER")]:
+            try:
+                con.execute(f"ALTER TABLE board_state ADD COLUMN {col} {definition}")
+            except sqlite3.OperationalError:
+                pass
+        for col, definition in [("user_id", "INTEGER")]:
+            try:
+                con.execute(f"ALTER TABLE drafts ADD COLUMN {col} {definition}")
+            except sqlite3.OperationalError:
+                pass
         # 迁移已有数据：给旧表添加新字段
         try:
             con.execute("ALTER TABLE sources ADD COLUMN contributor TEXT DEFAULT 'Me'")
