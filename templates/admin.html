@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>管理后台 - WriteHer</title>
+<link rel="stylesheet" href="/static/style.css">
+<style>
+.admin-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 40px;
+}
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-muted);
+}
+.admin-title {
+    font-size: 24px;
+    letter-spacing: 2px;
+    color: var(--accent-gold);
+}
+.logout-link {
+    color: var(--accent-gold-dim);
+    text-decoration: none;
+    font-size: 13px;
+}
+.logout-link:hover {
+    color: var(--accent-gold);
+}
+.section {
+    margin-bottom: 50px;
+}
+.section-title {
+    font-size: 16px;
+    color: var(--accent-gold);
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+}
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.admin-table th {
+    text-align: left;
+    padding: 12px;
+    font-size: 12px;
+    color: var(--accent-gold-dim);
+    border-bottom: 1px solid var(--border-muted);
+    font-weight: 500;
+}
+.admin-table td {
+    padding: 12px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border-muted);
+}
+.admin-table tr:hover {
+    background: rgba(139,115,85,0.04);
+}
+.admin-btn {
+    background: transparent;
+    border: 1px solid var(--accent-gold-dim);
+    color: var(--accent-gold);
+    padding: 6px 14px;
+    cursor: pointer;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+.admin-btn:hover {
+    border-color: var(--accent-gold);
+    background: rgba(139,115,85,0.1);
+}
+.code-display {
+    background: var(--bg-deep);
+    border: 1px solid var(--border-muted);
+    padding: 12px;
+    font-family: monospace;
+    font-size: 14px;
+    color: var(--accent-gold);
+    margin-top: 10px;
+    display: none;
+}
+.code-display.show {
+    display: block;
+}
+.badge {
+    background: var(--accent-gold);
+    color: #0a0a0a;
+    padding: 2px 8px;
+    font-size: 11px;
+    border-radius: 2px;
+}
+.used-badge {
+    background: var(--accent-gold-dim);
+    opacity: 0.5;
+}
+</style>
+</head>
+<body>
+
+<div class="admin-container">
+    <div class="admin-header">
+        <div class="admin-title">管理后台 / ADMIN</div>
+        <div style="display: flex; gap: 16px; align-items: center;">
+            <a href="/library" class="logout-link">返回主页</a>
+            <a href="/logout" class="logout-link">退出登录</a>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">用户管理 / USERS</div>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>用户名</th>
+                    <th>权限</th>
+                    <th>注册时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>{{ u.id }}</td>
+                    <td>{{ u.username }}</td>
+                    <td>
+                        {% if u.is_admin %}
+                        <span class="badge">管理员</span>
+                        {% else %}
+                        普通用户
+                        {% endif %}
+                    </td>
+                    <td>{{ (u.created_at or '')[:10] }}</td>
+                    <td>
+                        <button class="admin-btn" onclick="resetPassword({{ u.id }}, '{{ u.username }}')">重置密码</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">邀请码管理 / INVITE CODES</div>
+        <button class="admin-btn" onclick="createInvite()" style="margin-bottom: 20px;">生成新邀请码</button>
+        <div class="code-display" id="newCodeDisplay"></div>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>邀请码</th>
+                    <th>状态</th>
+                    <th>使用者</th>
+                    <th>创建时间</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in codes %}
+                <tr>
+                    <td>{{ c.id }}</td>
+                    <td><code>{{ c.code }}</code></td>
+                    <td>
+                        {% if c.used %}
+                        <span class="badge used-badge">已使用</span>
+                        {% else %}
+                        <span class="badge">未使用</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ c.used_by or '-' }}</td>
+                    <td>{{ (c.created_at or '')[:10] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+async function createInvite() {
+    const res = await fetch('/admin/invite', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+        const display = document.getElementById('newCodeDisplay');
+        display.textContent = '新邀请码: ' + data.code;
+        display.classList.add('show');
+        setTimeout(() => location.reload(), 2000);
+    }
+}
+
+async function resetPassword(userId, username) {
+    if (!confirm(`确定要重置用户 ${username} 的密码吗？`)) return;
+    const res = await fetch(`/admin/reset_password/${userId}`, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+        alert(`密码已重置为: ${data.new_password}\n请立即告知用户并要求其修改密码`);
+    }
+}
+</script>
+
+</body>
+</html>

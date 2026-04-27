@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>注册 - WriteHer</title>
+<link rel="stylesheet" href="/static/style.css">
+<style>
+.auth-container {
+    max-width: 400px;
+    margin: 100px auto;
+    padding: 40px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-muted);
+}
+.auth-title {
+    font-size: 24px;
+    margin-bottom: 24px;
+    text-align: center;
+    letter-spacing: 2px;
+}
+.auth-form label {
+    display: block;
+    font-size: 13px;
+    margin-bottom: 8px;
+    color: var(--accent-gold);
+}
+.auth-form input {
+    width: 100%;
+    background: var(--bg-deep);
+    border: 1px solid var(--border-muted);
+    color: var(--text-warm);
+    padding: 12px;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+.auth-form button {
+    width: 100%;
+    background: var(--accent-gold);
+    border: none;
+    color: #0a0a0a;
+    padding: 12px;
+    cursor: pointer;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+.auth-error {
+    background: rgba(255,100,100,0.1);
+    border: 1px solid rgba(255,100,100,0.3);
+    color: #ff6464;
+    padding: 12px;
+    margin-bottom: 16px;
+    font-size: 13px;
+}
+.auth-link {
+    text-align: center;
+    font-size: 13px;
+    opacity: 0.7;
+}
+.auth-link a {
+    color: var(--accent-gold);
+    text-decoration: none;
+}
+</style>
+</head>
+<body>
+
+<div class="auth-container">
+    <div class="auth-title">WRITEHR · 述她</div>
+    {% if error %}
+    <div class="auth-error">{{ error }}</div>
+    {% endif %}
+    <form class="auth-form" method="post">
+        <label>用户名</label>
+        <input type="text" name="username" required autofocus>
+        <label>密码</label>
+        <input type="password" name="password" required>
+        <label>邀请码</label>
+        <input type="text" name="invite_code" required>
+        <button type="submit">注册</button>
+    </form>
+    <div class="auth-link">
+        已有账号？<a href="/login">登录</a>
+    </div>
+</div>
+
+</body>
+</html>

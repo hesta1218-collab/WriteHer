@@ -12,6 +12,11 @@
     <a href="/plaza"   class="{{ 'active' if active_page == 'plaza' }}">广场 / PLAZA</a>
     <a href="/board"   class="{{ 'active' if active_page == 'board' }}">侦探板 / INFERENCE</a>
     <a href="/editor"  class="{{ 'active' if active_page == 'editor' }}">编辑器 / NARRATIVE</a>
+    <div style="flex: 1;"></div>
+    {% if session.is_admin %}
+    <a href="/admin" class="{{ 'active' if active_page == 'admin' }}">管理后台</a>
+    {% endif %}
+    <a href="/logout">退出</a>
 </nav>
 {% block content %}{% endblock %}
 </body>
